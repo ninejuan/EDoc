@@ -3,7 +3,7 @@
 	"version": "0.0.1",
 	"private": true,
 	"scripts": {
-		"dev": "vite dev",
+		"dev": "vite dev --host --port 80",
 		"build": "vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -29,6 +29,10 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@auth/core": "^0.10.0",
+		"@auth/sveltekit": "^0.3.6",
+		"dotenv": "^16.3.1",
+		"firebase": "^10.1.0",
 		"mailog": "^2.0.2",
 		"mongoose": "^7.4.2"
 	}

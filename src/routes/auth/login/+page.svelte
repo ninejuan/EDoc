@@ -1,74 +1,120 @@
-<svelte:head>
-    <script>
-        
-    </script>
-	</svelte:head>
 <script lang="ts">
 	import { redirect } from '@sveltejs/kit';
 	import { FirebaseError, initializeApp, getApp } from 'firebase/app';
-    import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
+	import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+	import { onMount } from 'svelte';
+	import { serialize } from 'cookie';
+	import type { ActionData } from './$types';
 
-    interface ReturnData {
-        fbConf: Object;
+	interface loadProps {
+		fbConf: Object;
 		cid: String;
 		callbackURL: String;
 	}
-	export let data: ReturnData;
+	/** @type {import('./$types').PageData} */
+	export let data: loadProps;
 
-	// Initialize Firebase
-    let app = initializeApp(data.fbConf) ?? getApp('JuanyKr');
-	// !getApp().toString().length ? app = initializeApp(data.fbConf) : app = getApp();
+	interface resProps {
+		status: number;
+		body: Object;
+		headers: Object;
+	}
+	/** @type {import('./$types').ActionData} */
+	export let resp: resProps;
 
-    const auth = getAuth();
-    const provider = new GoogleAuthProvider();
+	let app = initializeApp(data.fbConf);
+	const auth = getAuth();
+	const provider = new GoogleAuthProvider();
 
-    function GoogleLogIn() {
-        return signInWithPopup(auth, provider);
-    }
+	interface User {
+		uid: string;
+		email: string | null;
+		fullName: string | null;
+		profileUrl: string | null;
+		acToken: string | undefined;
+		refToken: string;
+	}
 
-    function GoogleLogInSuccess(user: Object) {
-		fetch('/auth/login', {
+	function objectToFormEncodedString(obj: any) {
+		const keyValuePairs = [];
+
+		for (const key in obj) {
+			if (obj[key] !== undefined && obj[key] !== null) {
+				const encodedKey = encodeURIComponent(key);
+				const encodedValue = encodeURIComponent(obj[key]);
+				keyValuePairs.push(`${encodedKey}=${encodedValue}`);
+			}
+		}
+
+		return keyValuePairs.join('&');
+	}
+
+	async function sendUserDataToServer(user: User) {
+		let data = objectToFormEncodedString(user);
+		const res = await fetch('/auth/login', {
 			method: 'POST',
 			headers: {
-				'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(user)
-			}).then((res) => {
-				if (res.status === 200) {
-					throw redirect(302, '/docs/list');
-				}
-			}).catch((err) => {
-				console.error(err);
-			});
-    }
+				'Content-Type': 'application/x-www-form-urlencoded'
+			},
+			body: data
+		});
+		const json = await res.json();
+		console.log(json);
+			// .then((res) => {
+			// 	/*
+			// 		Response Lists
+			// 		RTJ : Redirect To Join Page
+			// 		SLRS : Successful Login. Redirect to Service
 
-    function RequestLogIn() {
-        GoogleLogIn().then((res) => {
-            GoogleLogInSuccess(res);
-        })
-    }
+			// 	*/
+			// 	console.log(res.body.)
+			// 	console.log(resp ? 't' : 'f');
+			// 	// switch (res) {
+			// 	// 	case value:
+
+			// 	// 		break;
+
+			// 	// 	default:
+			// 	// 		break;
+			// 	// }
+			// })
+			// .catch((err) => {
+			// 	console.error(err);
+			// });
+	}
+
+	async function GoogleLogIn() {
+		signInWithPopup(auth, provider)
+			.then((result) => {
+				console.log(result);
+				const credential = GoogleAuthProvider.credentialFromResult(result);
+				// @ts-ignore
+				const token = credential.accessToken;
+				const user = result.user;
+				console.log(user);
+				console.log(credential);
+				let userData = new URLSearchParams();
+				sendUserDataToServer({
+					uid: user.uid,
+					email: user.email,
+					fullName: user.displayName,
+					profileUrl: user.photoURL,
+					acToken: token,
+					refToken: user.refreshToken
+				});
+			})
+			.catch((error) => {
+				return console.log('로그인 중 오류가 발생했습니다');
+			});
+	}
+
+	function RequestLogIn() {
+		console.log('RequestLogIn');
+		GoogleLogIn();
+	}
 </script>
 
 <meta name="google-signin-client_id" content="{data.cid}.apps.googleusercontent.com" />
 <h1>Welcome to SvelteKit</h1>
 <p>Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation</p>
-<div
-	id="g_id_onload"
-	data-client_id={data.cid}
-	data-context="signin"
-	data-ux_mode="popup"
-	data-login_uri={data.callbackURL}
-	data-auto_prompt="false"
-/>
-
-<div
-	class="g_id_signin"
-	data-type="standard"
-	data-shape="rectangular"
-	data-theme="outline"
-	data-text="signin_with"
-	data-size="large"
-	data-logo_alignment="left"
-/>
-
 <button on:click={RequestLogIn}>구글 로그인</button>

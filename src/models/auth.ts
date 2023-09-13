@@ -13,10 +13,8 @@ const authSchema = new mongo.Schema({
     },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
-    providerData: {
-        provider: { type: String, required: true },
-        uid: { type: String, required: true }
-    }
+    provider: { type: String, required: true },
+    uid: { type: String, required: true }
 });
 
 export default mongo.model('auth', authSchema);
